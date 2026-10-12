@@ -5,5 +5,14 @@ requires-python = ">=3.12,<3.13"
 # needs: brew install ollama (system-wide), see README
 dependencies = [
     "inspect-ai",
-    "openai",  # Inspect's ollama provider uses the OpenAI client
+    "openai", # Inspect's ollama provider uses the OpenAI client
+    "pandas",
+    "pyarrow",
+]
+
+[dependency-groups]
+dev = [
+    "jupyter",
+    "pytest",
+    "pyhamcrest",
 ]
