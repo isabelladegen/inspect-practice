@@ -1,0 +1,9 @@
+[project]
+name = "inspect-practice"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+# needs: brew install ollama (system-wide), see README
+dependencies = [
+    "inspect-ai",
+    "openai",  # Inspect's ollama provider uses the OpenAI client
+]
