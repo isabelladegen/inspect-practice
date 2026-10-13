@@ -1,5 +1,9 @@
 from enum import StrEnum
 
+from inspect_ai.core import GenerateConfig
+from inspect_ai.model import get_model
+from inspect_ai.model import Model as InspectModel
+
 
 class Model(StrEnum):
     # Ai2 (non-profit), US. Fully open. Apache 2.0.
@@ -20,3 +24,7 @@ class Model(StrEnum):
     def ollama_tag(self) -> str:
         """Tag as Ollama knows it, without Inspect's provider prefix."""
         return self.removeprefix("ollama/")
+
+    def as_inspect(self, **config) -> InspectModel:
+        """Inspect model instance with the given generation config."""
+        return get_model(self, config=GenerateConfig(**config))
