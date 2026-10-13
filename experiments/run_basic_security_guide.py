@@ -8,12 +8,16 @@ from utils.config import EXP_LOG_DIR
 from utils.models import Model
 
 if __name__ == "__main__":
-    EXPERIMENT = "security_guide_V1"
+    EXPERIMENT = "security_guide_V2"
     temperature = 0.0  # most likely response
     seed = 42  # passed to Ollama for repeatable sampling
     log_path = path.join(EXP_LOG_DIR, EXPERIMENT)
 
-    TASKS = [security_guide(s_message=SECURITY_SYS_MSG,
+    security_sys_msg = """Your knowledge of security is being assessed. Respond to the following user questions 
+    concisely but precisely, ideally in a few words.  
+    Your answers will be assessed by a human security expert."""
+
+    TASKS = [security_guide(s_message=security_sys_msg,
                             grader=Model.PHI4_14B,
                             grader_max_tokens=512,
                             grader_temp=temperature, )]
