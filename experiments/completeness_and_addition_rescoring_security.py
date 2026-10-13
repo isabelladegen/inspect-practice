@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from inspect_ai import eval as inspect_eval
 from inspect_ai.log import list_eval_logs, read_eval_log
 
@@ -18,7 +16,8 @@ def rescore_experiment(source: str, experiment: str, scorers: list) -> None:
         if log.status != "success":
             print(f"Skipping run {log.location} (model {log.eval.model}, status {log.status}) in experiment {source}")
             continue
-        inspect_eval(replay_task(log, scorers), model=log.eval.model, log_dir=experiment_dir(experiment))
+        inspect_eval(replay_task(log, scorers), model=log.eval.model, log_dir=experiment_dir(experiment),
+                     tags=["rescore"])
 
 
 if __name__ == "__main__":
@@ -27,7 +26,7 @@ if __name__ == "__main__":
     temp = 0.0
 
     source_experiment = "security_guide_V2"
-    experiment_name = f"{source_experiment}_rescore_completeness_and_additions_V1"
+    experiment_name = f"{source_experiment}_rescore_completeness_and_additions_V2"
 
     scorers = [
         completeness(instruction=SEC_COMPLETENESS_INSTRUCTIONS, grader=grader,

@@ -1,23 +1,20 @@
 from inspect_ai.scorer import scorer, mean, stderr, model_graded_fact
 
+from metrics.metric_ignoring_na import mean_excl_na, stderr_excl_na, share_na
 from utils.models import Model
 
 SEC_COMPLETENESS_INSTRUCTIONS = """
-You are grading answers to security questions against a target expert answer.
+You are grading how completely a submission covers an expert answer to a security question.
 
 Grade on meaning, not literal wording:
-    - The same concept in different words counts as present
-      (e.g. "encode outputs" = "output encoding", "MFA" = "multi-factor authentication").
-    - A different technique does not count as a key point, even if it achieves
-      a similar effect. Treat it as additional content.
-    - Synonyms and equivalent techniques count as the same content
-      (e.g. "encode outputs" = "output encoding").
-    - Extra content in the submission does not lower the grade unless it contradicts the expert answer.
+- A key point counts as present if the submission expresses the same underlying
+  security principle, even in different words or through a different technique.
+- Ignore any content in the submission beyond the expert answer.
 
 Grades:
-- C: the submission contains all key points of the expert answer and does not contradict the expert answer.
+- C: the submission contains all key points of the expert answer.
 - P: the submission contains some but not all key points.
-- I: the submission contains none of the key points, or contradicts the expert answer.
+- I: the submission contains none of the key points.
 
 First list the key points of the expert answer. For each, state whether the
 submission contains it, quoting the matching words. Then end with
@@ -25,19 +22,21 @@ submission contains it, quoting the matching words. Then end with
 """
 
 SEC_ADDITIONS_INSTRUCTIONS = """
-You are reviewing the content of a submission that goes beyond an expert answer
-to a security question. Ignore the content that matches the expert answer, this has already been analysed separately.
+You are evaluating only the content of a submission that goes beyond an expert answer
+to a security question. Ignore the content that matches the expert answer.
 
-First list each addition. For each, state whether it is:
-- relevant to the question or not
-- if it is relevant state whether it is correct or incorrect. A technique applied to the wrong problem is incorrect.
+First list each addition. For each, state whether it is relevant to the question
+and whether it is correct. An addition is incorrect if it reflects a misunderstanding
+of security or of the question; differences in terminology do not make it incorrect.
+An addition is acceptable only if it is both relevant and correct.
 
 Grades:
-- C: no additions, or all additions are correct and relevant.
-- P: some additions are correct but not relevant; none are incorrect.
-- I: at least one addition is incorrect.
+- C: all additions are acceptable.
+- P: some additions are acceptable.
+- I: no addition is acceptable.
+- N: the submission contains no additions.
 
-End with 'GRADE: $LETTER' where LETTER is one of C, P or I.
+End with 'GRADE: $LETTER' where LETTER is one of C, P, I or N.
 """
 
 
@@ -51,11 +50,12 @@ def completeness(instruction: str = SEC_COMPLETENESS_INSTRUCTIONS, grader: str =
     )
 
 
-@scorer(metrics=[mean(), stderr()])
-def additions(instruction: str = SEC_ADDITIONS_INSTRUCTIONS, grader: str = Model.PHI4_14B, max_tokens: int = 1024,
-              temp: float = 0.0):
+@scorer(metrics=[mean_excl_na(), stderr_excl_na(), share_na()])
+def additions(instruction: str = SEC_ADDITIONS_INSTRUCTIONS, grader: str = Model.PHI4_14B,
+              max_tokens: int = 1024, temp: float = 0.0):
     return model_graded_fact(
         model=Model(grader).as_inspect(temperature=temp, max_tokens=max_tokens),
         instructions=instruction,
+        grade_pattern=r"(?i)GRADE\s*:\s*([CPIN])",
         partial_credit=True,
     )

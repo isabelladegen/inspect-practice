@@ -12,4 +12,18 @@ def replay_task(log: EvalLog, scorers: list) -> Task:
                metadata={"answer": s.output.completion})
         for s in log.samples
     ])
-    return Task(name=log.eval.task, dataset=dataset, solver=replay(), scorer=scorers)
+    return Task(
+        name=log.eval.task,
+        dataset=dataset,
+        solver=replay(),
+        scorer=scorers,
+        metadata={
+            "kind": "rescore",
+            "rescores": {
+                "log": log.location,
+                "run_id": log.eval.run_id,
+                "eval_id": log.eval.eval_id,
+                "task_args": log.eval.task_args,
+            },
+        },
+    )
