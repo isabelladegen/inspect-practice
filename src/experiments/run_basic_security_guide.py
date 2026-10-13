@@ -3,9 +3,9 @@ from os import path
 from inspect_ai import eval_set
 from inspect_ai.analysis import evals_df
 
-from tasks.security_guide import security_guide, SECURITY_SYS_MSG
-from utils.config import EXP_LOG_DIR
-from utils.models import Model
+from src.tasks.security_guide import security_guide
+from src.utils.config import EXP_LOG_DIR
+from src.utils.models import Model
 
 if __name__ == "__main__":
     EXPERIMENT = "security_guide_V2"

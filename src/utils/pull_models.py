@@ -11,7 +11,7 @@ import urllib.request
 from os import path
 
 from models import Model
-from utils.config import OLLAMA_TAGS_URL, LOG_DIR
+from src.utils.config import OLLAMA_TAGS_URL, LOG_DIR
 
 logging.basicConfig(
     level=logging.INFO,

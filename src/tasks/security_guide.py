@@ -2,9 +2,8 @@ from inspect_ai import Task, task
 from inspect_ai.dataset import example_dataset
 from inspect_ai.scorer import model_graded_fact
 from inspect_ai.solver import system_message, generate
-from inspect_ai.model import Model as InspectModel
 
-from utils.models import Model
+from src.utils.models import Model
 
 SECURITY_SYS_MSG = """
 You are a computer security expert tasked with providing

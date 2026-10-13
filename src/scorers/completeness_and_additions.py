@@ -1,7 +1,7 @@
 from inspect_ai.scorer import scorer, mean, stderr, model_graded_fact
 
-from metrics.metric_ignoring_na import mean_excl_na, stderr_excl_na, share_na
-from utils.models import Model
+from src.metrics.metric_ignoring_na import mean_excl_na, stderr_excl_na, share_na
+from src.utils.models import Model
 
 SEC_COMPLETENESS_INSTRUCTIONS = """
 You are grading how completely a submission covers an expert answer to a security question.

@@ -3,9 +3,9 @@ from os import path
 from inspect_ai import eval_set
 from inspect_ai.analysis import evals_df
 
-from utils.config import EXP_LOG_DIR
-from utils.models import Model
-from tasks.hello_world import hello_world
+from src.utils.config import EXP_LOG_DIR
+from src.utils.models import Model
+from src.tasks import hello_world
 
 if __name__ == "__main__":
     temperature = 0.0  # most likely response

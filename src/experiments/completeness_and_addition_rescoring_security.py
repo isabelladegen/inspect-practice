@@ -1,12 +1,12 @@
 from inspect_ai import eval as inspect_eval
 from inspect_ai.log import list_eval_logs, read_eval_log
 
-from analysis.rescoring_comparision import compare_models
-from scorers.completeness_and_additions import additions, completeness, SEC_COMPLETENESS_INSTRUCTIONS, \
+from src.analysis.rescoring_comparision import compare_models
+from src.scorers.completeness_and_additions import SEC_COMPLETENESS_INSTRUCTIONS, completeness, additions, \
     SEC_ADDITIONS_INSTRUCTIONS
-from tasks.replay import replay_task
-from utils.config import experiment_dir, result_path
-from utils.models import Model
+from src.tasks.replay import replay_task
+from src.utils.config import experiment_dir, result_path
+from src.utils.models import Model
 
 
 def rescore_experiment(source: str, experiment: str, scorers: list) -> None:

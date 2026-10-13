@@ -1,7 +1,7 @@
 import pandas as pd
 from inspect_ai.log import list_eval_logs, read_eval_log
 
-from utils.config import experiment_dir
+from src.utils.config import experiment_dir
 
 GRADE_VALUE = {"C": 1.0, "P": 0.5, "I": 0.0}
 COLUMNS = ["model", "sample_id", "scorer", "grade", "value"]
