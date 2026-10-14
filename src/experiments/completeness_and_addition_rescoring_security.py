@@ -1,7 +1,7 @@
 from inspect_ai import eval as inspect_eval
 from inspect_ai.log import list_eval_logs, read_eval_log
 
-from src.analysis.rescoring_comparision import compare_models
+from src.analysis.rescoring_comparision import compare_models, sample_grades
 from src.scorers.completeness_and_additions import SEC_COMPLETENESS_INSTRUCTIONS, completeness, additions, \
     SEC_ADDITIONS_INSTRUCTIONS
 from src.tasks.replay import replay_task
@@ -40,3 +40,7 @@ if __name__ == "__main__":
     result_df = compare_models(source=source_experiment, experiment=experiment_name)
     print(result_df.round(3))
     result_df.to_csv(result_path(name=experiment_name))
+
+    # sample level results
+    samples_df = sample_grades(experiment=experiment_name)
+    samples_df.to_csv(result_path(name=f"{experiment_name}_samples"), index=False)

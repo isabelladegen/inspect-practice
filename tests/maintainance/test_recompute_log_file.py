@@ -4,11 +4,12 @@ from inspect_ai.log import write_eval_log, read_eval_log
 from src.maintainance.recompute import compute_changes
 from src.maintainance.recompute_log_file import recompute_log_file
 from src.scorers.completeness_and_additions import additions
+from src.scorers.grades import Grade
 from src.scorers.score_reducers import single
 from tests.testing_utils.stub_logs import stub_broken_inspect_log, stub_no_changes, stub_correct_inspect_log, file_bytes
 
-test_addition_grades = ["C", "I", "N", "N"]
-test_completeness_grades = ["C", "P", "I", "C"]
+test_addition_grades = [Grade.C, Grade.I, Grade.N, Grade.N]
+test_completeness_grades = [Grade.C, Grade.P, Grade.I, Grade.C]
 
 def recompute_file(location):
     # method under test!

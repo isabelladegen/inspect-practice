@@ -3,13 +3,14 @@ from inspect_ai.scorer import Score
 
 from src.maintainance.recompute import SampleChange, MetricChange, Changes, apply_changes, compute_changes
 from src.scorers.completeness_and_additions import additions, completeness
+from src.scorers.grades import Grade
 from src.scorers.score_reducers import single
 from src.metrics.metric_ignoring_na import mean_excl_na, stderr_excl_na, share_na
 from src.utils.inspect_registery import registered_name
 from tests.testing_utils.stub_logs import stub_broken_inspect_log, stub_correct_inspect_log, stub_no_changes
 
-test_addition_grades = ["C", "I", "N", "N"]
-test_completeness_grades = ["C", "P", "I", "C"]
+test_addition_grades = [Grade.C, Grade.I, Grade.N, Grade.N]
+test_completeness_grades = [Grade.C, Grade.P, Grade.I, Grade.C]
 
 
 # --- compute_changes: decides what differs and calculates the new values ---
@@ -30,10 +31,10 @@ def test_computes_changes_for_broken_log(tmp_path):
         ],
         reducer=(None, registered_name(single)),  # "mean": the name Inspect writes for its default
         samples=[
-            SampleChange(0, 1.0, "C"),
-            SampleChange(1, 0.0, "I"),
-            SampleChange(2, 0.0, "N"),
-            SampleChange(3, 0.0, "N"),
+            SampleChange(0, 1.0, Grade.C),
+            SampleChange(1, 0.0, Grade.I),
+            SampleChange(2, 0.0, Grade.N),
+            SampleChange(3, 0.0, Grade.N),
         ],
     )
     assert_that(changes, equal_to(expected_changes))
@@ -47,7 +48,7 @@ def test_computes_no_changes_for_correct_log(tmp_path):
 
 
 def test_computes_no_changes_for_correct_all_na_log(tmp_path):
-    log = stub_correct_inspect_log(tmp_path, additions_grades=["N", "N"], completeness_grades=["C", "I"])
+    log = stub_correct_inspect_log(tmp_path, additions_grades=[Grade.N, Grade.N], completeness_grades=[Grade.C, Grade.I])
     changes = changes_of(log)
     assert_that(changes, equal_to(stub_no_changes()))
 
@@ -92,7 +93,7 @@ def test_applying_changes_leaves_other_scorer_and_samples_untouched(tmp_path):
 
 def test_applying_changes_keeps_rich_score_content_in_reductions(tmp_path):
     rich_score = Score(
-        value="I",
+        value=Grade.I,
         answer="I don't store any personal data.",
         explanation="Both additions are not relevant to the question.\n\nGRADE: I",
         metadata={"grading": [
@@ -102,7 +103,7 @@ def test_applying_changes_keeps_rich_score_content_in_reductions(tmp_path):
              "source": "generate", "role": "assistant", "model": "phi4:14b"},
         ]},
     )
-    log = stub_broken_inspect_log(tmp_path, [rich_score, "C"], ["C", "I"])
+    log = stub_broken_inspect_log(tmp_path, [rich_score, Grade.C], [Grade.C, Grade.I])
 
     apply_changes(log, compute_changes(log, scorer=additions, reducer=single), "metrics_recomputed")
 

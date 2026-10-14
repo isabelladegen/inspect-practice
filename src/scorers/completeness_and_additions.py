@@ -1,6 +1,7 @@
 from inspect_ai.scorer import scorer, mean, stderr, model_graded_fact
 
 from src.metrics.metric_ignoring_na import mean_excl_na, stderr_excl_na, share_na, na_metrics
+from src.scorers.grades import Grade
 from src.utils.models import Model
 
 SEC_COMPLETENESS_INSTRUCTIONS = """
@@ -56,6 +57,6 @@ def additions(instruction: str = SEC_ADDITIONS_INSTRUCTIONS, grader: str = Model
     return model_graded_fact(
         model=Model(grader).as_inspect(temperature=temp, max_tokens=max_tokens),
         instructions=instruction,
-        grade_pattern=r"(?i)GRADE\s*:\s*([CPIN])",
+        grade_pattern=Grade.pattern(include_na=True),
         partial_credit=True,
     )

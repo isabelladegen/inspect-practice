@@ -2,7 +2,7 @@ import math
 
 from inspect_ai.scorer import Metric, SampleScore, metric
 
-GRADE_VALUE = {"C": 1.0, "P": 0.5, "I": 0.0}
+from src.scorers.grades import Grade
 
 
 def na_metrics() -> list:
@@ -14,8 +14,9 @@ def na_metrics_names() -> list:
 
 
 def _graded(scores: list[SampleScore]) -> list[float]:
-    """Numeric values of the C/P/I grades; N and anything else is left out."""
-    return [GRADE_VALUE[s.score.value] for s in scores if s.score.value in GRADE_VALUE]
+    """Numeric values of the applicable grades; N and unknown values are left out."""
+    grades = (Grade.parse(s.score.value) for s in scores)
+    return [g.numeric for g in grades if g is not None and g.applicable]
 
 
 @metric
@@ -43,6 +44,7 @@ def stderr_excl_na() -> Metric:
 @metric
 def share_na() -> Metric:
     def compute(scores: list[SampleScore]) -> float:
-        return sum(s.score.value == "N" for s in scores) / len(scores) if scores else math.nan
-
+        if not scores:
+            return math.nan
+        return sum(Grade.parse(s.score.value) is Grade.N for s in scores) / len(scores)
     return compute
