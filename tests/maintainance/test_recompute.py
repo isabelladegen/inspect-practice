@@ -1,4 +1,5 @@
 from hamcrest import *
+from inspect_ai.scorer import Score
 
 from src.maintainance.recompute import SampleChange, MetricChange, Changes, apply_changes, compute_changes
 from src.scorers.completeness_and_additions import additions, completeness
@@ -54,7 +55,7 @@ def test_computes_no_changes_for_correct_all_na_log(tmp_path):
 def test_computing_changes_does_not_modify_log(tmp_path):
     log = stub_broken_inspect_log(tmp_path, test_addition_grades, test_completeness_grades)
     before = log.model_dump()
-    changes_of(log) # calling recompute log does not change the log itself!
+    changes_of(log)  # calling recompute log does not change the log itself!
     assert_that(log.model_dump(), equal_to(before))
 
 
@@ -87,3 +88,27 @@ def test_applying_changes_leaves_other_scorer_and_samples_untouched(tmp_path):
     assert_that(next(r for r in log.reductions if r.scorer == name).model_dump(),
                 equal_to(before_reduction))
     assert_that([s.scores for s in log.samples], equal_to(before_samples))
+
+
+def test_applying_changes_keeps_rich_score_content_in_reductions(tmp_path):
+    rich_score = Score(
+        value="I",
+        answer="I don't store any personal data.",
+        explanation="Both additions are not relevant to the question.\n\nGRADE: I",
+        metadata={"grading": [
+            {"id": "u1", "content": "You are evaluating only the content of a submission...",
+             "role": "user"},
+            {"id": "a1", "content": "Both additions are not relevant...\n\nGRADE: I",
+             "source": "generate", "role": "assistant", "model": "phi4:14b"},
+        ]},
+    )
+    log = stub_broken_inspect_log(tmp_path, [rich_score, "C"], ["C", "I"])
+
+    apply_changes(log, compute_changes(log, scorer=additions, reducer=single), "metrics_recomputed")
+
+    reduction = next(r for r in log.reductions if r.scorer == registered_name(additions))
+    reduced = next(s for s in reduction.samples if s.sample_id == 0)
+    assert_that(reduced.value, equal_to(rich_score.value))
+    assert_that(reduced.answer, equal_to(rich_score.answer))
+    assert_that(reduced.explanation, equal_to(rich_score.explanation))
+    assert_that(reduced.metadata, equal_to(rich_score.metadata))

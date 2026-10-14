@@ -4,8 +4,8 @@ from src.metrics.metric_ignoring_na import na_metrics
 from src.scorers.completeness_and_additions import completeness, additions
 
 
-def stub_grader(grades: list[str], metrics: list, name="stub_grader"):
-    """Stand-in for a model grader: sample i gets grades[i], no model is called.
+def stub_grader(grades: list, metrics: list, name: str = "stub_grader"):
+    """Stand-in for a model grader: sample i gets grades[i] (a letter or a full Score) , no model is called.
 
     Takes the metrics to report, so a test can attach the same metrics as the
     production scorer it replaces.
@@ -14,7 +14,8 @@ def stub_grader(grades: list[str], metrics: list, name="stub_grader"):
     @scorer(metrics=metrics, name=name)
     def _stub():
         async def score(state, target):
-            return Score(value=grades[state.sample_id])
+            grade = grades[state.sample_id]
+            return grade if isinstance(grade, Score) else Score(value=grade)
 
         return score
 
