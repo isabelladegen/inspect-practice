@@ -1,10 +1,11 @@
 from inspect_ai.log import list_eval_logs, read_eval_log, write_eval_log
 
+from src.analysis.rescoring_comparision import compare_models
 from src.maintainance.recompute import Changes, compute_changes, apply_changes
 from src.metrics.metric_ignoring_na import na_metrics_names
 from src.scorers.completeness_and_additions import additions
 from src.scorers.score_reducers import single
-from src.utils.config import experiment_dir
+from src.utils.config import experiment_dir, result_path
 
 
 def recompute_log_file(location: str, scorer, reducer, tag: str) -> Changes:
@@ -28,9 +29,11 @@ if __name__ == "__main__":
 
     changed = 0
     for info in list_eval_logs(experiment_dir(experiment_name)):
-        if recompute_log_file(info.name, scorer=additions,
-                              metrics= na_metrics_names(),
-                              reducer=single, tag=tag):
+        if recompute_log_file(info.name, scorer=additions, reducer=single, tag=tag):
             changed += 1
             print(f"Fixed {info.name}")
     print(f"{changed} log(s) changed in experiment {experiment_name}")
+
+    result_df = compare_models(source="security_guide_V2", experiment=experiment_name)
+    print(result_df.round(3))
+    result_df.to_csv(result_path(name=experiment_name))
