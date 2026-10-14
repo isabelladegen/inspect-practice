@@ -1,6 +1,6 @@
 from hamcrest import *
 
-from src.metrics.metric_ignoring_na import mean_excl_na, stderr_excl_na, share_na
+from src.metrics.metric_ignoring_na import mean_excl_na, stderr_excl_na, share_na, na_metrics
 from src.tasks.replay import replay_sample, rescore_task
 from tests.testing_utils.stubs import stub_grader
 from inspect_ai import eval as inspect_eval
@@ -9,7 +9,7 @@ from inspect_ai import eval as inspect_eval
 def additions_metrics_after_rescoring(grades: list[str], log_dir: str) -> dict:
     """Rescore one sample per grade through the real rescore task; return the reported metrics."""
     samples = [replay_sample(id=i, input="q", target="t", answer="a") for i in range(len(grades))]
-    task = rescore_task(samples, scorers=[stub_grader(grades, [mean_excl_na(), stderr_excl_na(), share_na()])],
+    task = rescore_task(samples, scorers=[stub_grader(grades, na_metrics())],
                         name="rescore_test")
     log = inspect_eval(task, model="mockllm/model", log_dir=log_dir, display="none")[0]
     return {name: m.value for name, m in log.results.scores[0].metrics.items()}

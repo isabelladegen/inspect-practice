@@ -1,6 +1,6 @@
 from inspect_ai.scorer import scorer, mean, stderr, model_graded_fact
 
-from src.metrics.metric_ignoring_na import mean_excl_na, stderr_excl_na, share_na
+from src.metrics.metric_ignoring_na import mean_excl_na, stderr_excl_na, share_na, na_metrics
 from src.utils.models import Model
 
 SEC_COMPLETENESS_INSTRUCTIONS = """
@@ -50,7 +50,7 @@ def completeness(instruction: str = SEC_COMPLETENESS_INSTRUCTIONS, grader: str =
     )
 
 
-@scorer(metrics=[mean_excl_na(), stderr_excl_na(), share_na()])
+@scorer(metrics=na_metrics())
 def additions(instruction: str = SEC_ADDITIONS_INSTRUCTIONS, grader: str = Model.PHI4_14B,
               max_tokens: int = 1024, temp: float = 0.0):
     return model_graded_fact(
