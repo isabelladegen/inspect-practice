@@ -4,14 +4,15 @@ from dataclasses import dataclass, field
 from inspect_ai.log import EvalLog, EvalMetric, EvalSampleReductions, EvalSampleScore
 from inspect_ai.scorer import SampleScore
 
+from src.utils.inspect_logs import sample_score, logged_samples, logged_results
 from src.utils.inspect_registery import registered_name, scorer_metrics
 
 
 @dataclass(frozen=True)
 class MetricChange:
     name: str
-    old: object
-    new: object
+    old: float | None
+    new: float | None
 
 
 @dataclass(frozen=True)
@@ -41,10 +42,10 @@ def compute_changes(log: EvalLog, scorer, reducer) -> Changes:
     """What `scorer`'s metrics and reductions should be, given its stored per-sample scores
     and `reducer`, compared with what the log holds. Does not modify the log."""
     name = registered_name(scorer)
-    stored = sorted(((s.id, s.scores[name]) for s in log.samples), key=lambda x: x[0])
+    stored = sorted(((s.id, sample_score(s, name)) for s in logged_samples(log)), key=lambda x: x[0])
     sample_scores = [SampleScore(score=score, sample_id=sid) for sid, score in stored]
 
-    result = next(r for r in log.results.scores if r.name == name)
+    result = next(r for r in logged_results(log).scores if r.name == name)
     metric_changes = []
     for metric in scorer_metrics(scorer):
         metric_name = registered_name(metric)
@@ -71,7 +72,7 @@ def compute_changes(log: EvalLog, scorer, reducer) -> Changes:
 
 def apply_changes(log: EvalLog, changes: Changes, tag: str) -> None:
     """Write `changes` into the log and tag it."""
-    result = next(r for r in log.results.scores if r.name == changes.scorer)
+    result = next(r for r in logged_results(log).scores if r.name == changes.scorer)
     for change in changes.metrics:
         value = math.nan if change.new is None else change.new
         if change.name in result.metrics:
@@ -81,14 +82,19 @@ def apply_changes(log: EvalLog, changes: Changes, tag: str) -> None:
 
     if changes.reducer or changes.samples:
         current = next((r for r in (log.reductions or []) if r.scorer == changes.scorer), None)
-        reducer_name = changes.reducer[1] if changes.reducer else current.reducer
+        if changes.reducer:
+            reducer_name = changes.reducer[1]
+        elif current is not None:
+            reducer_name = current.reducer
+        else:
+            raise ValueError(f"No reducer known for scorer {changes.scorer}")
         # A single reducer's reduced score is the stored score itself, so the stored
         # score is used whole, keeping its answer, explanation and metadata.
         reduction = EvalSampleReductions(
             scorer=changes.scorer,
             reducer=reducer_name,
-            samples=[EvalSampleScore(**s.scores[changes.scorer].model_dump(), sample_id=s.id)
-                     for s in sorted(log.samples, key=lambda s: s.id)],
+            samples=[EvalSampleScore(**sample_score(s, changes.scorer).model_dump(), sample_id=s.id)
+                     for s in sorted(logged_samples(log), key=lambda s: s.id)],
         )
         log.reductions = [r for r in (log.reductions or [])
                           if r.scorer != changes.scorer] + [reduction]

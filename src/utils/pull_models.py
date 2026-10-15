@@ -16,7 +16,7 @@ from src.utils.models import Model
 logging.basicConfig(
     level=logging.INFO,
     format="[%(asctime)s] %(message)s",
-    datefmt="%H:%M:%S",
+    datefmt="%Y-%m-%d %H:%M:%S",
     handlers=[logging.StreamHandler(), logging.FileHandler(path.join(LOG_DIR, "pull_models.log"))],
 )
 log = logging.getLogger(__name__)

@@ -11,8 +11,8 @@ class Grade(StrEnum):
     N = "N"
 
     @property
-    def numeric(self) -> float | None:
-        """Position on the scale; None for N, which is not on it."""
+    def position(self) -> float | None:
+        """Position on the scale; None for a grade that is not on it."""
         match self:
             case Grade.C:
                 return 1.0
@@ -26,7 +26,15 @@ class Grade(StrEnum):
     @property
     def applicable(self) -> bool:
         """False for a grade that is not on the scale, e.g. N: there was nothing to grade."""
-        return self.numeric is not None
+        return self.position is not None
+
+    @property
+    def numeric(self) -> float:
+        """Position on the scale; raises for a grade that is not on it."""
+        position = self.position
+        if position is None:
+            raise ValueError(f"Grade {self} is not on the scale")
+        return position
 
     @classmethod
     def parse(cls, value) -> "Grade | None":

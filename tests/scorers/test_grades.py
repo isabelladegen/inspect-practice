@@ -8,8 +8,16 @@ all_grades = list(Grade)
 standard_grades = [Grade.C, Grade.P, Grade.I]
 
 
-def test_numeric_values_of_the_scale():
-    assert_that([g.numeric for g in Grade], equal_to([1.0, 0.5, 0.0, None]))
+def test_position_values_of_the_scale():
+    assert_that([g.position for g in Grade], equal_to([1.0, 0.5, 0.0, None]))
+
+
+def test_numeric_values_of_the_grades_on_the_scale():
+    assert_that([Grade.C.numeric, Grade.P.numeric, Grade.I.numeric], equal_to([1.0, 0.5, 0.0]))
+
+
+def test_numeric_of_a_grade_not_on_the_scale_raises():
+    assert_that(calling(lambda: Grade.N.numeric), raises(ValueError))
 
 
 def test_only_n_is_not_applicable():

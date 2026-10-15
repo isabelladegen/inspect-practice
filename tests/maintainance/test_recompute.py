@@ -1,4 +1,5 @@
 from hamcrest import *
+from inspect_ai.log import read_eval_log
 from inspect_ai.scorer import Score
 
 from src.maintainance.recompute import SampleChange, MetricChange, Changes, apply_changes, compute_changes
@@ -48,7 +49,8 @@ def test_computes_no_changes_for_correct_log(tmp_path):
 
 
 def test_computes_no_changes_for_correct_all_na_log(tmp_path):
-    log = stub_correct_inspect_log(tmp_path, additions_grades=[Grade.N, Grade.N], completeness_grades=[Grade.C, Grade.I])
+    log = stub_correct_inspect_log(tmp_path, additions_grades=[Grade.N, Grade.N],
+                                   completeness_grades=[Grade.C, Grade.I])
     changes = changes_of(log)
     assert_that(changes, equal_to(stub_no_changes()))
 
@@ -113,3 +115,10 @@ def test_applying_changes_keeps_rich_score_content_in_reductions(tmp_path):
     assert_that(reduced.answer, equal_to(rich_score.answer))
     assert_that(reduced.explanation, equal_to(rich_score.explanation))
     assert_that(reduced.metadata, equal_to(rich_score.metadata))
+
+
+def test_computing_changes_on_a_header_only_log_raises(tmp_path):
+    location = stub_correct_inspect_log(tmp_path, [Grade.C], [Grade.C]).location
+    header = read_eval_log(location, header_only=True)
+
+    assert_that(calling(compute_changes).with_args(header, additions, single()), raises(ValueError, "no samples"))

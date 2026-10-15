@@ -6,6 +6,7 @@ from inspect_ai.log import list_eval_logs, read_eval_log
 from src.scorers.completeness_and_additions import additions
 from src.scorers.grades import Grade
 from src.utils.config import experiment_dir
+from src.utils.inspect_logs import logged_samples
 from src.utils.inspect_registery import registered_name
 
 
@@ -32,7 +33,7 @@ def sample_grades(experiment: str) -> pd.DataFrame:
         if log.status != "success":
             continue
         runs.setdefault(log.eval.model, []).append(log.location)
-        for s in log.samples:
+        for s in logged_samples(log):
             for scorer_name, sc in (s.scores or {}).items():
                 grade = Grade.parse(sc.value)
                 rows.append({
@@ -41,7 +42,7 @@ def sample_grades(experiment: str) -> pd.DataFrame:
                     col.SCORER: scorer_name,
                     col.GRADE: sc.value,
                     col.APPLICABLE: grade is not None and grade.applicable,
-                    col.VALUE: grade.numeric if grade is not None else None,
+                    col.VALUE: grade.position if grade is not None else None,
                 })
 
     # Check 1: one successful run per model

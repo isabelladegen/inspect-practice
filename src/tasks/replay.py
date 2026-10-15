@@ -1,16 +1,39 @@
 import random
+from dataclasses import dataclass
 
-from inspect_ai import Task, Epochs
-from inspect_ai.dataset import MemoryDataset, Sample
-from inspect_ai.log import EvalLog, EvalSample
+from inspect_ai import Epochs, Task
+from inspect_ai.core import ChatMessage
+from inspect_ai.dataset import Sample, MemoryDataset
+from inspect_ai.log import EvalLog
 
 from src.scorers.score_reducers import single
 from src.solvers.replay import replay
+from src.utils.inspect_logs import logged_samples
 
 
-def stored_answer(sample: EvalSample) -> str:
-    """The answer the model gave in a logged sample."""
-    return sample.output.completion
+@dataclass(frozen=True)
+class StoredAnswer:
+    """What a model answered to one item."""
+    item_id: int | str
+    question: str | list[ChatMessage]
+    key: str | list[str]
+    answer: str
+
+
+def stored_answers(log: EvalLog) -> list[StoredAnswer]:
+    """The answers stored in `log`; raises if it has no samples."""
+    return [StoredAnswer(s.id, s.input, s.target, s.output.completion) for s in logged_samples(log)]
+
+
+def answers_by_model(logs: list[EvalLog]) -> dict[str, list[StoredAnswer]]:
+    """The stored answers of each log under its model; raises if a model has more than one log."""
+    by_model = {}
+    for log in logs:
+        model = log.eval.model
+        if model in by_model:
+            raise ValueError(f"More than one log for model {model}")
+        by_model[model] = stored_answers(log)
+    return by_model
 
 
 def source_metadata(log: EvalLog) -> dict:
@@ -43,7 +66,7 @@ def rescore_task(samples: list[Sample], scorers: list, name: str,
 
 def replay_task(log: EvalLog, scorers: list) -> Task:
     """Rescoring task for the answers stored in `log`."""
-    samples = [replay_sample(s.id, s.input, s.target, stored_answer(s)) for s in log.samples]
+    samples = [replay_sample(a.item_id, a.question, a.key, a.answer) for a in stored_answers(log)]
     return rescore_task(
         samples, scorers, name=log.eval.task,
         metadata={
@@ -53,33 +76,26 @@ def replay_task(log: EvalLog, scorers: list) -> Task:
     )
 
 
-def answers_by_item(logs: list[EvalLog], seed: int) -> list[Sample]:
-    """One sample per item holding every model's answer, under letters in a seeded
-    random order per item. The letter-to-model mapping is kept in the metadata."""
-    by_model = {}
-    for log in logs:
-        model = log.eval.model
-        if model in by_model:
-            raise ValueError(f"More than one log for {model}")
-        by_model[model] = {s.id: s for s in log.samples}
-
+def answers_by_item(answers: dict[str, list[StoredAnswer]], seed: int) -> list[Sample]:
+    """One sample per item holding every model's answer, under labels in a seeded
+    random order per item. The label-to-model mapping is kept in the metadata."""
+    by_model = {model: {a.item_id: a for a in model_answers} for model, model_answers in answers.items()}
     models = sorted(by_model)
-    item_ids = sorted(set().union(*(s.keys() for s in by_model.values())))
+    item_ids = sorted(set().union(*(items.keys() for items in by_model.values())))
     return [_item_sample(item_id, by_model, models, seed) for item_id in item_ids]
 
 
-def _item_sample(item_id, by_model: dict, models: list[str], seed: int) -> Sample:
+def _item_sample(item_id, by_model: dict[str, dict], models: list[str], seed: int) -> Sample:
     models_without_answer = [model for model in models if item_id not in by_model[model]]
     if models_without_answer:
         raise ValueError(f"Item {item_id} has no answer from models {models_without_answer}")
 
-    samples = {model: by_model[model][item_id] for model in models}
-    first = samples[models[0]]
-    if any(s.input != first.input or s.target != first.target for s in samples.values()):
+    stored = {model: by_model[model][item_id] for model in models}
+    first = stored[models[0]]
+    if any(a.question != first.question or a.key != first.key for a in stored.values()):
         raise ValueError(f"Item {item_id} has differing questions or keys across models")
 
-    answers = {model: stored_answer(sample) for model, sample in samples.items()}
-    models_with_empty_answer = [model for model, answer in answers.items() if not answer.strip()]
+    models_with_empty_answer = [model for model, a in stored.items() if not a.answer.strip()]
     if models_with_empty_answer:
         raise ValueError(f"Item {item_id} has an empty answer from models {models_with_empty_answer}")
 
@@ -87,9 +103,9 @@ def _item_sample(item_id, by_model: dict, models: list[str], seed: int) -> Sampl
     random.Random(f"{seed}:{item_id}").shuffle(order)  # per item, independent of item order
     labels = [f"A{i}" for i in range(1, len(order) + 1)]
     return Sample(
-        id=item_id, input=first.input, target=first.target,
+        id=item_id, input=first.question, target=first.key,
         metadata={
-            "answers": {label: answers[model] for label, model in zip(labels, order)},
+            "answers": {label: stored[model].answer for label, model in zip(labels, order)},
             "models": dict(zip(labels, order)),
             "order_seed": seed,
         },

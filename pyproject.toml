@@ -15,4 +15,7 @@ dev = [
     "jupyter",
     "pytest",
     "pyhamcrest",
+    "ty",
 ]
+[tool.ty.src]
+include = ["src"]

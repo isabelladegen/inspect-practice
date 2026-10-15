@@ -2,8 +2,7 @@ from inspect_ai import eval as inspect_eval
 from inspect_ai.log import list_eval_logs, read_eval_log
 
 from src.analysis.rescoring_comparision import compare_models, sample_grades
-from src.scorers.completeness_and_additions import SEC_COMPLETENESS_INSTRUCTIONS, completeness, additions, \
-    SEC_ADDITIONS_INSTRUCTIONS
+from src.scorers.completeness_and_additions import completeness, additions, completeness_scoring, additions_scoring
 from src.tasks.replay import replay_task
 from src.utils.config import experiment_dir, result_path
 from src.utils.models import Model
@@ -29,10 +28,8 @@ if __name__ == "__main__":
     experiment_name = f"{source_experiment}_rescore_completeness_and_additions_V2"
 
     scorers = [
-        completeness(instruction=SEC_COMPLETENESS_INSTRUCTIONS, grader=grader,
-                     max_tokens=grader_max_tokens, temp=temp),
-        additions(instruction=SEC_ADDITIONS_INSTRUCTIONS, grader=grader,
-                  max_tokens=grader_max_tokens, temp=temp),
+        completeness(instructions=completeness_scoring(), grader=grader, max_tokens=grader_max_tokens, temp=temp),
+        additions(instructions=additions_scoring(), grader=grader, max_tokens=grader_max_tokens, temp=temp),
     ]
 
     rescore_experiment(source=source_experiment, experiment=experiment_name, scorers=scorers)

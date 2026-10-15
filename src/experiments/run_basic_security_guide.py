@@ -21,7 +21,7 @@ if __name__ == "__main__":
                             grader=Model.PHI4_14B,
                             grader_max_tokens=512,
                             grader_temp=temperature, )]
-    MODELS = [Model.GEMMA3_12B, Model.OLMO2_13B, Model.PHI4_14B, Model.APERTUS_V11_4B]
+    MODELS : list[str] = [Model.GEMMA3_12B, Model.OLMO2_13B, Model.PHI4_14B, Model.APERTUS_V11_4B]
 
     eval_set(
         tasks=TASKS,

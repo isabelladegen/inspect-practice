@@ -3,9 +3,7 @@ from pathlib import Path
 
 import pytest
 
-import src
-
-SRC = Path(src.__file__).parent
+from src.utils.config import SRC_DIR
 
 
 def module_names(folder: Path) -> list[str]:
@@ -14,6 +12,6 @@ def module_names(folder: Path) -> list[str]:
             for path in sorted(folder.rglob("*.py")) if path.name != "__init__.py"]
 
 
-@pytest.mark.parametrize("module", module_names(SRC))
+@pytest.mark.parametrize("module", module_names(Path(SRC_DIR)))
 def test_module_imports(module):
     importlib.import_module(module)
