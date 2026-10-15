@@ -6,7 +6,7 @@ from inspect_ai.log import list_eval_logs, read_eval_log
 from src.scorers.completeness_and_additions import additions
 from src.scorers.grades import Grade
 from src.utils.config import experiment_dir
-from src.utils.inspect_logs import logged_samples
+from src.utils.inspect_logs import logged_samples, successful_logs
 from src.utils.inspect_registery import registered_name
 
 
@@ -28,10 +28,7 @@ def sample_grades(experiment: str) -> pd.DataFrame:
     col = SampleGradeColumn
     rows = []
     runs = {}
-    for info in list_eval_logs(experiment_dir(experiment)):
-        log = read_eval_log(info)
-        if log.status != "success":
-            continue
+    for log in successful_logs(experiment):
         runs.setdefault(log.eval.model, []).append(log.location)
         for s in logged_samples(log):
             for scorer_name, sc in (s.scores or {}).items():

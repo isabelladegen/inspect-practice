@@ -1,20 +1,16 @@
 from inspect_ai import eval as inspect_eval
-from inspect_ai.log import list_eval_logs, read_eval_log
 
 from src.analysis.rescoring_comparision import compare_models, sample_grades
 from src.scorers.completeness_and_additions import completeness, additions, completeness_scoring, additions_scoring
 from src.tasks.replay import replay_task
 from src.utils.config import experiment_dir, result_path
+from src.utils.inspect_logs import successful_logs
 from src.utils.models import Model
 
 
 def rescore_experiment(source: str, experiment: str, scorers: list, max_samples: int, max_connections: int) -> None:
     """Score the answers of experiment `source` as a new experiment `experiment`."""
-    for info in list_eval_logs(experiment_dir(source)):
-        log = read_eval_log(info)
-        if log.status != "success":
-            print(f"Skipping run {log.location} (model {log.eval.model}, status {log.status}) in experiment {source}")
-            continue
+    for log in successful_logs(source):
         inspect_eval(replay_task(log, scorers), model=log.eval.model, log_dir=experiment_dir(experiment),
                      tags=["rescore"], max_samples=max_samples, max_connections=max_connections)
 

@@ -1,5 +1,7 @@
-from inspect_ai.log import EvalLog, EvalResults, EvalSample
+from inspect_ai.log import EvalLog, EvalResults, EvalSample, list_eval_logs, read_eval_log
 from inspect_ai.scorer import Score
+
+from src.utils.config import experiment_dir
 
 
 def logged_samples(log: EvalLog) -> list[EvalSample]:
@@ -21,3 +23,15 @@ def sample_score(sample: EvalSample, scorer: str) -> Score:
     if not sample.scores or scorer not in sample.scores:
         raise ValueError(f"Sample {sample.id} has no score from scorer {scorer}")
     return sample.scores[scorer]
+
+def successful_logs(experiment: str) -> list[EvalLog]:
+    """The logs of `experiment`'s successful runs; reports each run it skips."""
+    logs = []
+    for info in list_eval_logs(experiment_dir(experiment)):
+        log = read_eval_log(info)
+        if log.status != "success":
+            print(f"Skipping run {log.location} (model {log.eval.model}, status {log.status}) "
+                  f"in experiment {experiment}")
+            continue
+        logs.append(log)
+    return logs
