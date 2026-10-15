@@ -43,6 +43,7 @@ def test_stored_answer_is_read_back_per_model_and_id_from_disk(tmp_path):
     assert_that({s.id: stored_answer(s) for s in logs["mockllm/phi"].samples},
                 equal_to({0: "phi to 0", 1: "phi to 1"}))
 
+
 def test_each_letter_holds_the_answer_of_the_model_mapped_to_it(tmp_path):
     logs = [replayed_log("mockllm/gemma", ["gemma to 0", "gemma to 1"], str(tmp_path)),
             replayed_log("mockllm/phi", ["phi to 0", "phi to 1"], str(tmp_path))]
@@ -84,5 +85,12 @@ def test_missing_answer_raises(tmp_path):
 def test_differing_question_raises(tmp_path):
     logs = [replayed_log("mockllm/gemma", ["g"], str(tmp_path), input="q1"),
             replayed_log("mockllm/phi", ["p"], str(tmp_path), input="q2")]
+
+    assert_that(calling(answers_by_item).with_args(logs, seed=1), raises(ValueError))
+
+
+def test_empty_answer_raises(tmp_path):
+    logs = [replayed_log("mockllm/gemma", ["g"], str(tmp_path)),
+            replayed_log("mockllm/phi", [""], str(tmp_path))]
 
     assert_that(calling(answers_by_item).with_args(logs, seed=1), raises(ValueError))

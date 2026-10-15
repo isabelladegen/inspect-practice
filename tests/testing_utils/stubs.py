@@ -27,3 +27,10 @@ def stub_addition_completeness_scorers(additions_grades, completeness_grades):
         stub_grader(completeness_grades, [mean(), stderr()], name=completeness.__name__),
         stub_grader(additions_grades, na_metrics(), name=additions.__name__),
     ]
+
+@scorer(metrics=[])
+def stub_dict_scorer(value: dict):
+    """Returns `value` as the score for every sample."""
+    async def score(state, target):
+        return Score(value=value)
+    return score

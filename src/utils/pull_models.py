@@ -10,8 +10,8 @@ import sys
 import urllib.request
 from os import path
 
-from models import Model
 from src.utils.config import OLLAMA_TAGS_URL, LOG_DIR
+from src.utils.models import Model
 
 logging.basicConfig(
     level=logging.INFO,
