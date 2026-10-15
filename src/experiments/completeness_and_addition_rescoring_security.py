@@ -8,7 +8,7 @@ from src.utils.config import experiment_dir, result_path
 from src.utils.models import Model
 
 
-def rescore_experiment(source: str, experiment: str, scorers: list) -> None:
+def rescore_experiment(source: str, experiment: str, scorers: list, max_samples: int, max_connections: int) -> None:
     """Score the answers of experiment `source` as a new experiment `experiment`."""
     for info in list_eval_logs(experiment_dir(source)):
         log = read_eval_log(info)
@@ -16,7 +16,7 @@ def rescore_experiment(source: str, experiment: str, scorers: list) -> None:
             print(f"Skipping run {log.location} (model {log.eval.model}, status {log.status}) in experiment {source}")
             continue
         inspect_eval(replay_task(log, scorers), model=log.eval.model, log_dir=experiment_dir(experiment),
-                     tags=["rescore"])
+                     tags=["rescore"], max_samples=max_samples, max_connections=max_connections)
 
 
 if __name__ == "__main__":
@@ -25,14 +25,15 @@ if __name__ == "__main__":
     temp = 0.0
 
     source_experiment = "security_guide_V2"
-    experiment_name = f"{source_experiment}_rescore_completeness_and_additions_V2"
+    experiment_name = f"{source_experiment}_rescore_completeness_and_additions_V3"
 
     scorers = [
         completeness(instructions=completeness_scoring(), grader=grader, max_tokens=grader_max_tokens, temp=temp),
         additions(instructions=additions_scoring(), grader=grader, max_tokens=grader_max_tokens, temp=temp),
     ]
 
-    rescore_experiment(source=source_experiment, experiment=experiment_name, scorers=scorers)
+    rescore_experiment(source=source_experiment, experiment=experiment_name, scorers=scorers, max_samples=1,
+                       max_connections=1)
 
     result_df = compare_models(source=source_experiment, experiment=experiment_name)
     print(result_df.round(3))
