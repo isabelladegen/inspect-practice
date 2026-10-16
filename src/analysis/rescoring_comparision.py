@@ -3,10 +3,8 @@ from enum import StrEnum
 import pandas as pd
 from inspect_ai.log import EvalLog
 
-from src.scorers.completeness_and_additions import additions
 from src.scorers.grades import Grade
 from src.utils.inspect_logs import logged_samples, successful_logs
-from src.utils.inspect_registery import registered_name
 
 
 class SampleGradeColumn(StrEnum):
