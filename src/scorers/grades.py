@@ -55,21 +55,23 @@ class Grade(StrEnum):
         return f"End with 'GRADE: $LETTER' where LETTER is one of {cls._named(grades)}."
 
     @classmethod
-    def several_answers_format(cls, labels: list[str], grades: Iterable["Grade"]) -> str:
-        """How to ask for one grade per answer; parsed by `parse_several`."""
-        example = ", ".join(f"{label}=$LETTER" for label in labels)
-        return (f"End with one line 'GRADES: {example}' where each LETTER is one of "
-                f"{cls._named(grades)}.")
+    def several_answers_format(cls, grades: Iterable["Grade"]) -> str:
+        """How to ask for one grade per submission; the line is found by `several_answers_pattern`."""
+        return ("End with one line 'GRADES: ' listing every submission's label from its tag "
+                "(A1 for [Submission A1]) with its grade, for example 'GRADES: A1=C, A2=P', "
+                f"where each grade is one of {cls._named(grades)}.")
 
     @classmethod
-    def parse_several(cls, reply: str, labels: list[str],
-                      grades: Iterable["Grade"]) -> list[tuple[str, "Grade"]]:
-        """Every (label, grade) pair in the last 'GRADES:' line, in order, repeats included."""
-        lines = re.findall(r"(?im)^\s*GRADES\s*:(.*)$", reply)
-        if not lines:
-            return []
+    def several_answers_pattern(cls) -> str:
+        """Regex capturing the content of the last 'GRADES:' line in a grader's reply."""
+        return r"(?is).*(?<!\w)GRADES\s*:\s*([^\n]*)"
+
+    @classmethod
+    def parse_grades_line(cls, line: str, labels: list[str],
+                          grades: Iterable["Grade"]) -> list[tuple[str, "Grade"]]:
+        """Every (label, grade) pair in a grades line, in order, repeats included."""
         alternatives = "|".join(re.escape(label) for label in labels)
-        pairs = re.findall(rf"(?i)\b({alternatives})\s*=\s*([{''.join(grades)}])\b", lines[-1])
+        pairs = re.findall(rf"(?i)\b({alternatives})\s*=\s*([{''.join(grades)}])\b", line)
         return [(label.upper(), cls(grade.upper())) for label, grade in pairs]
 
     @staticmethod

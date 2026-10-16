@@ -19,17 +19,16 @@ class ScoringInstructions:
             f"{self.procedure} {Grade.one_answer_format(self.grades)}",
         ])
 
-    def prompt_for_several_answers(self, labels: list[str]) -> str:
+    def prompt_for_several_answers(self) -> str:
         return "\n\n".join([
-            f"{self.task} You are given several submissions to the same question, labelled "
-            f"{', '.join(labels)}. Grade each submission on its own, using the same standard for all.",
+            self.task,
             self.criteria,
             self._grades(),
             f"For each submission in turn: {self.procedure}",
             "Then review your grades together. Submissions that make the same points must get "
             "the same grade, whatever their wording, length or position. Revise any grade that "
             "fails this.",
-            Grade.several_answers_format(labels, self.grades),
+            Grade.several_answers_format(self.grades),
         ])
 
     def _grades(self) -> str:

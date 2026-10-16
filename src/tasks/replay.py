@@ -25,6 +25,16 @@ def stored_answers(log: EvalLog) -> list[StoredAnswer]:
     return [StoredAnswer(s.id, s.input, s.target, s.output.completion) for s in logged_samples(log)]
 
 
+def source_metadata(log: EvalLog) -> dict:
+    """What identifies the run a log came from."""
+    return {
+        "log": log.location,
+        "run_id": log.eval.run_id,
+        "eval_id": log.eval.eval_id,
+        "task_args": log.eval.task_args,
+    }
+
+
 def answers_by_model(logs: list[EvalLog]) -> dict[str, list[StoredAnswer]]:
     """The stored answers of each log under its model; raises if a model has more than one log."""
     by_model = {}
@@ -36,19 +46,18 @@ def answers_by_model(logs: list[EvalLog]) -> dict[str, list[StoredAnswer]]:
     return by_model
 
 
-def source_metadata(log: EvalLog) -> dict:
-    """What identifies the run a log came from."""
-    return {
-        "log": log.location,
-        "run_id": log.eval.run_id,
-        "eval_id": log.eval.eval_id,
-        "task_args": log.eval.task_args,
-    }
+def answers_by_item(answers: dict[str, list[StoredAnswer]], seed: int) -> list[Sample]:
+    """One sample per item whose replayed answer holds every model's answer, each under a label,
+    in a seeded random order per item. The label-to-model mapping is kept in the metadata."""
+    by_model = {model: {a.item_id: a for a in model_answers} for model, model_answers in answers.items()}
+    models = sorted(by_model)
+    item_ids = sorted(set().union(*(items.keys() for items in by_model.values())))
+    return [_item_sample(item_id, by_model, models, seed) for item_id in item_ids]
 
 
-def replay_sample(id, input, target, answer: str) -> Sample:
+def replay_sample(id, input, target, answer: str, metadata: dict | None = None) -> Sample:
     """A sample whose stored `answer` the replay solver will use as the model output."""
-    return Sample(id=id, input=input, target=target, metadata={"answer": answer})
+    return Sample(id=id, input=input, target=target, metadata={"answer": answer, **(metadata or {})})
 
 
 def rescore_task(samples: list[Sample], scorers: list, name: str,
@@ -76,15 +85,6 @@ def replay_task(log: EvalLog, scorers: list) -> Task:
     )
 
 
-def answers_by_item(answers: dict[str, list[StoredAnswer]], seed: int) -> list[Sample]:
-    """One sample per item holding every model's answer, under labels in a seeded
-    random order per item. The label-to-model mapping is kept in the metadata."""
-    by_model = {model: {a.item_id: a for a in model_answers} for model, model_answers in answers.items()}
-    models = sorted(by_model)
-    item_ids = sorted(set().union(*(items.keys() for items in by_model.values())))
-    return [_item_sample(item_id, by_model, models, seed) for item_id in item_ids]
-
-
 def _item_sample(item_id, by_model: dict[str, dict], models: list[str], seed: int) -> Sample:
     models_without_answer = [model for model in models if item_id not in by_model[model]]
     if models_without_answer:
@@ -102,11 +102,25 @@ def _item_sample(item_id, by_model: dict[str, dict], models: list[str], seed: in
     order = list(models)
     random.Random(f"{seed}:{item_id}").shuffle(order)  # per item, independent of item order
     labels = [f"A{i}" for i in range(1, len(order) + 1)]
-    return Sample(
-        id=item_id, input=first.question, target=first.key,
+    submissions = "\n".join(f"[Submission {label}] {stored[model].answer}" for label, model in zip(labels, order))
+    return replay_sample(item_id,
+                         first.question,
+                         first.key,
+                         submissions,
+                         metadata={"models": dict(zip(labels, order)),
+                                   "order_seed": seed
+                                   }
+                         )
+
+
+def several_answers_task(logs: list[EvalLog], scorers: list, order_seed: int) -> Task:
+    """Rescoring task for every item's answers from all `logs` together."""
+    if not logs:
+        raise ValueError("No source logs to rescore")
+    return rescore_task(
+        answers_by_item(answers_by_model(logs), seed=order_seed), scorers, name=logs[0].eval.task,
         metadata={
-            "answers": {label: stored[model].answer for label, model in zip(labels, order)},
-            "models": dict(zip(labels, order)),
-            "order_seed": seed,
+            "kind": "rescore_several_answers",
+            "rescores": [source_metadata(log) for log in logs],
         },
     )

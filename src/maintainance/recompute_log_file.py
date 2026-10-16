@@ -6,6 +6,7 @@ from src.metrics.metric_ignoring_na import na_metrics_names
 from src.scorers.completeness_and_additions import additions
 from src.scorers.score_reducers import single
 from src.utils.config import experiment_dir, result_path
+from src.utils.inspect_registery import registered_name
 
 
 def recompute_log_file(location: str, scorer, reducer, tag: str) -> Changes:
@@ -14,7 +15,7 @@ def recompute_log_file(location: str, scorer, reducer, tag: str) -> Changes:
     log = read_eval_log(location)
     if log.status != "success":
         print(f"Skipping {location} (status {log.status})")
-        return Changes(scorer=scorer.__name__)
+        return Changes(scorer=registered_name(scorer))
 
     changes = compute_changes(log, scorer, reducer)
     if changes:

@@ -1,9 +1,11 @@
 from hamcrest import *
-from inspect_ai.log import read_eval_log, EvalLog, list_eval_logs
+from inspect_ai.log import read_eval_log, list_eval_logs
 
 from src.metrics.metric_ignoring_na import na_metrics
 from src.scorers.grades import Grade
-from src.tasks.replay import replay_sample, rescore_task, answers_by_item, replay_task, answers_by_model, StoredAnswer
+from src.tasks.replay import replay_sample, rescore_task, answers_by_item, replay_task, answers_by_model, StoredAnswer, \
+    several_answers_task
+from tests.testing_utils.stub_logs import replayed_log
 from tests.testing_utils.stubs import stub_grader
 from inspect_ai import eval as inspect_eval
 
@@ -15,13 +17,6 @@ def additions_metrics_after_rescoring(grades: list[str], log_dir: str) -> dict:
                         name="rescore_test")
     log = inspect_eval(task, model="mockllm/model", log_dir=log_dir, display="none")[0]
     return {name: m.value for name, m in log.results.scores[0].metrics.items()}
-
-
-def replayed_log(model: str, answers: list[str], log_dir: str, input: str = "q") -> EvalLog:
-    """Replay one sample per answer through the real rescore task as `model`."""
-    samples = [replay_sample(id=i, input=input, target="t", answer=a) for i, a in enumerate(answers)]
-    task = rescore_task(samples, scorers=[], name="replay_test")
-    return inspect_eval(task, model=model, log_dir=log_dir, display="none")[0]
 
 
 def test_rescoring_excludes_na_from_additions_mean(tmp_path):
@@ -43,6 +38,7 @@ def test_answers_are_read_back_per_model_and_item_from_disk(tmp_path):
     assert_that({a.item_id: a.answer for a in answers["mockllm/phi"]},
                 equal_to({0: "phi to 0", 1: "phi to 1"}))
 
+
 def test_two_logs_for_one_model_raise(tmp_path):
     logs = [replayed_log("mockllm/gemma", ["g"], str(tmp_path)),
             replayed_log("mockllm/gemma", ["g"], str(tmp_path))]
@@ -63,6 +59,7 @@ def test_answers_of_a_header_only_log_raise(tmp_path):
 
     assert_that(calling(answers_by_model).with_args([header]), raises(ValueError, "no samples"))
 
+
 #########
 
 def test_each_label_holds_the_answer_of_the_model_mapped_to_it():
@@ -76,7 +73,7 @@ def test_each_label_holds_the_answer_of_the_model_mapped_to_it():
     assert_that([s.id for s in samples], equal_to([0, 1]))
     for s in samples:
         for label, model in s.metadata["models"].items():
-            assert_that(s.metadata["answers"][label], equal_to(expected[(model, s.id)]))
+            assert_that(s.metadata["answer"], contains_string(f"[Submission {label}] {expected[(model, s.id)]}"))
 
 
 def test_same_seed_gives_same_order():
@@ -109,3 +106,17 @@ def test_empty_answer_raises():
                "phi": [StoredAnswer(0, "q", "t", "")]}
 
     assert_that(calling(answers_by_item).with_args(answers, seed=1), raises(ValueError))
+
+
+def test_several_answers_task_replays_each_models_answer_under_its_label(tmp_path):
+    logs = [replayed_log("mockllm/gemma", ["gemma to 0"], str(tmp_path)),
+            replayed_log("mockllm/phi", ["phi to 0"], str(tmp_path))]
+    expected = {"mockllm/gemma": "gemma to 0", "mockllm/phi": "phi to 0"}
+
+    task = several_answers_task(logs, scorers=[], order_seed=1)
+    log = inspect_eval(task, model="mockllm/model", log_dir=str(tmp_path / "several"), display="none")[0]
+
+    sample = log.samples[0]
+    for label, model in sample.metadata["models"].items():
+        assert_that(sample.output.completion, contains_string(f"[Submission {label}] {expected[model]}"))
+

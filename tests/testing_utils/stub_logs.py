@@ -3,6 +3,7 @@ from pathlib import Path
 from inspect_ai import Task
 from inspect_ai.dataset import MemoryDataset
 from inspect_ai import eval as inspect_eval
+from inspect_ai.log import EvalLog
 
 from src.maintainance.recompute import Changes
 from src.solvers.replay import replay
@@ -34,3 +35,9 @@ def stub_no_changes():
 
 def file_bytes(location: str) -> bytes:
     return Path(location.removeprefix("file://")).read_bytes()
+
+def replayed_log(model: str, answers: list[str], log_dir: str, input: str = "q") -> EvalLog:
+    """Replay one sample per answer through the real rescore task as `model`."""
+    samples = [replay_sample(id=i, input=input, target="t", answer=a) for i, a in enumerate(answers)]
+    task = rescore_task(samples, scorers=[], name="replay_test")
+    return inspect_eval(task, model=model, log_dir=log_dir, display="none")[0]

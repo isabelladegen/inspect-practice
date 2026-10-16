@@ -1,17 +1,17 @@
 from enum import StrEnum
 
 import pandas as pd
-from inspect_ai.log import list_eval_logs, read_eval_log
+from inspect_ai.log import EvalLog
 
 from src.scorers.completeness_and_additions import additions
 from src.scorers.grades import Grade
-from src.utils.config import experiment_dir
 from src.utils.inspect_logs import logged_samples, successful_logs
 from src.utils.inspect_registery import registered_name
 
 
 class SampleGradeColumn(StrEnum):
     """Columns of the per-sample grade table."""
+    GRADER = "grader"
     MODEL = "model"
     SAMPLE_ID = "sample_id"
     SCORER = "scorer"
@@ -21,8 +21,9 @@ class SampleGradeColumn(StrEnum):
 
 
 def sample_grades(experiment: str) -> pd.DataFrame:
-    """One row per model, sample and scorer, from the successful runs of `experiment`.
+    """One row per grader, answering model, sample and scorer, from the successful runs of `experiment`.
 
+    A score holding one grade per answering model (several answers graded at once) gives one row per model.
     `applicable` is False for N (nothing to grade) and for unknown grades; `value` is then NaN.
     """
     col = SampleGradeColumn
@@ -30,17 +31,20 @@ def sample_grades(experiment: str) -> pd.DataFrame:
     runs = {}
     for log in successful_logs(experiment):
         runs.setdefault(log.eval.model, []).append(log.location)
+        graders = {s.name: (s.options or {}).get("grader") for s in (log.eval.scorers or [])}
         for s in logged_samples(log):
             for scorer_name, sc in (s.scores or {}).items():
-                grade = Grade.parse(sc.value)
-                rows.append({
-                    col.MODEL: log.eval.model,
-                    col.SAMPLE_ID: s.id,
-                    col.SCORER: scorer_name,
-                    col.GRADE: sc.value,
-                    col.APPLICABLE: grade is not None and grade.applicable,
-                    col.VALUE: grade.position if grade is not None else None,
-                })
+                for grader, model, value in _graded_answers(log, graders.get(scorer_name), sc.value):
+                    grade = Grade.parse(value)
+                    rows.append({
+                        col.GRADER: grader,
+                        col.MODEL: model,
+                        col.SAMPLE_ID: s.id,
+                        col.SCORER: scorer_name,
+                        col.GRADE: value,
+                        col.APPLICABLE: grade is not None and grade.applicable,
+                        col.VALUE: grade.position if grade is not None else None,
+                    })
 
     # Check 1: one successful run per model
     for model, locations in runs.items():
@@ -63,9 +67,16 @@ def sample_grades(experiment: str) -> pd.DataFrame:
     return df
 
 
+def _graded_answers(log: EvalLog, scorer_grader, value) -> list[tuple]:
+    """(grader, answering model, grade) for each answer a score grades."""
+    if isinstance(value, dict):  # several answers at once: the eval's model graded every key's answer
+        return [(log.eval.model, model, grade) for model, grade in value.items()]
+    return [(scorer_grader, log.eval.model, value)]  # one answer: the eval's model answered it
+
+
 def compare_models(source: str, experiment: str) -> pd.DataFrame:
-    """Per model: original score; per scorer the share of applicable answers and the mean
-    over them; and the additions grade distribution over applicable answers."""
+    """Per grader and model: original score; per scorer the share of applicable answers, the mean
+    over them, and the grade distribution over them."""
     col = SampleGradeColumn
     before = sample_grades(source)
     after = sample_grades(experiment)
@@ -82,21 +93,20 @@ def compare_models(source: str, experiment: str) -> pd.DataFrame:
 
     applicable_before = before[before[col.APPLICABLE]]
     applicable_after = after[after[col.APPLICABLE]]
+    index = [col.GRADER, col.MODEL]
 
     original = applicable_before.groupby(col.MODEL)[col.VALUE].mean().rename("original")
     applicable_share = (
-        after.pivot_table(index=col.MODEL, columns=col.SCORER, values=col.APPLICABLE,
-                          aggfunc="mean")
+        after.pivot_table(index=index, columns=col.SCORER, values=col.APPLICABLE, aggfunc="mean")
         .add_suffix("_applicable")
     )
-    new = applicable_after.pivot_table(index=col.MODEL, columns=col.SCORER,
-                                       values=col.VALUE, aggfunc="mean")
-    additions_name = registered_name(additions)
+    new = applicable_after.pivot_table(index=index, columns=col.SCORER, values=col.VALUE, aggfunc="mean")
     distribution = (
-        applicable_after[applicable_after[col.SCORER] == additions_name]
-        .groupby(col.MODEL)[col.GRADE].value_counts(normalize=True)
+        applicable_after
+        .groupby(index + [col.SCORER])[col.GRADE].value_counts(normalize=True)
         .unstack(fill_value=0)
         .reindex(columns=[g for g in Grade if g.applicable], fill_value=0)
-        .add_prefix(f"{additions_name}_")
+        .unstack(col.SCORER)
     )
-    return pd.concat([original, applicable_share, new, distribution], axis=1)
+    distribution.columns = [f"{scorer}_{grade}" for grade, scorer in distribution.columns]
+    return pd.concat([applicable_share, new, distribution], axis=1).join(original)

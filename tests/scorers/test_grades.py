@@ -36,27 +36,20 @@ def test_pattern_with_and_without_na():
     assert_that(re.search(Grade.pattern(standard_grades), reply), is_(none()))
 
 
-def test_grades_are_parsed_per_label_from_the_grades_line():
-    reply = "A1 covers all points...\nGRADES: A1=C, A2=I, A3=P, A4=N"
-
-    grades = Grade.parse_several(reply, ["A1", "A2", "A3", "A4"], all_grades)
-
-    assert_that(grades, equal_to([("A1", Grade.C), ("A2", Grade.I), ("A3", Grade.P), ("A4", Grade.N)]))
+def test_grades_are_parsed_per_label_from_a_grades_line():
+    pairs = Grade.parse_grades_line("A1=C, A2=I, A3=P, A4=N", ["A1", "A2", "A3", "A4"], Grade)
+    assert_that(pairs, equal_to([("A1", Grade.C), ("A2", Grade.I), ("A3", Grade.P), ("A4", Grade.N)]))
 
 
-def test_n_is_absent_when_not_allowed():
-    grades = Grade.parse_several("GRADES: A1=N, A2=C", ["A1", "A2"], standard_grades)
+def test_a_grade_not_in_use_is_absent():
+    pairs = Grade.parse_grades_line("A1=N, A2=C", ["A1", "A2"], [Grade.C, Grade.P, Grade.I])
+    assert_that(pairs, equal_to([("A2", Grade.C)]))
 
-    assert_that(grades, equal_to([("A2", Grade.C)]))
 
-
-def test_last_grades_line_wins():
+def test_the_last_grades_line_is_captured():
     reply = "GRADES: A1=I, A2=I\nOn review, A1 is complete.\nGRADES: A1=C, A2=I"
-
-    grades = Grade.parse_several(reply, ["A1", "A2"], standard_grades)
-
-    assert_that(grades, equal_to([("A1", Grade.C), ("A2", Grade.I)]))
+    assert_that(re.search(Grade.several_answers_pattern(), reply).group(1), equal_to("A1=C, A2=I"))
 
 
-def test_no_grades_line_gives_no_grades():
-    assert_that(Grade.parse_several("GRADE: C", ["A1"], standard_grades), equal_to([]))
+def test_no_grades_line_is_not_captured():
+    assert_that(re.search(Grade.several_answers_pattern(), "GRADE: C"), none())
