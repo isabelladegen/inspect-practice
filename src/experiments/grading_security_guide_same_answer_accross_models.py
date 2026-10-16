@@ -1,6 +1,5 @@
 from src.analysis.rescoring_comparision import compare_models, sample_grades
-from src.scorers.completeness_and_additions import completeness_scoring, additions_scoring, \
-    completeness_of_several_answers, additions_of_several_answers
+from src.scorers.completeness_and_additions import completeness_of_several_answers, additions_of_several_answers
 from src.tasks.replay import several_answers_task
 from src.utils.config import experiment_dir, result_path
 from src.utils.inspect_logs import successful_logs
