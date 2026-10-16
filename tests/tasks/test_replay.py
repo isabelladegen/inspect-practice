@@ -120,3 +120,12 @@ def test_several_answers_task_replays_each_models_answer_under_its_label(tmp_pat
     for label, model in sample.metadata["models"].items():
         assert_that(sample.output.completion, contains_string(f"[Submission {label}] {expected[model]}"))
 
+def test_order_differs_between_items():
+    models = ["gemma", "olmo", "phi", "apertus"]
+    answers = {m: [StoredAnswer(i, "q", "t", f"{m} to {i}") for i in range(5)] for m in models}
+
+    samples = answers_by_item(answers, seed=1)
+
+    orders = {tuple(s.metadata["models"].values()) for s in samples}
+    assert_that(len(orders), greater_than(1))
+
