@@ -11,9 +11,10 @@ from src.utils.inspect_logs import successful_logs
 from src.utils.models import Model
 
 if __name__ == "__main__":
-    item_id = 12
+    item_id = 9
+    seed = 112
     grader = Model.PHI4_14B.as_inspect(temperature=0.0, max_tokens=2048, system_message=fair_grading_message())
-    samples = answers_by_item(answers_by_model(successful_logs("security_guide_V2")), seed=1)
+    samples = answers_by_item(answers_by_model(successful_logs("security_guide_V2")), seed=seed)
     sample = next(s for s in samples if s.id == item_id)
 
     target = Target(sample.target)

@@ -63,8 +63,8 @@ class Grade(StrEnum):
 
     @classmethod
     def several_answers_pattern(cls) -> str:
-        """Regex capturing the content of the last 'GRADES:' line in a grader's reply."""
-        return r"(?is).*(?<!\w)GRADES\s*:\s*([^\n]*)"
+        """Regex capturing everything after the last 'GRADES:' in a grader's reply."""
+        return r"(?is).*(?<!\w)GRADES\s*:\s*(.*)"
 
     @classmethod
     def parse_grades_line(cls, line: str, labels: list[str],

@@ -53,3 +53,12 @@ def test_the_last_grades_line_is_captured():
 
 def test_no_grades_line_is_not_captured():
     assert_that(re.search(Grade.several_answers_pattern(), "GRADE: C"), none())
+
+def test_grades_listed_over_several_lines_are_all_parsed():
+    """This is to protect against unambiguous misinterpretation of scoring"""
+    reply = "### GRADES:\n- A1=C\n- A2=N\n- A3=N\n- A4=N"
+
+    grades_text = re.search(Grade.several_answers_pattern(), reply).group(1)
+    pairs = Grade.parse_grades_line(grades_text, ["A1", "A2", "A3", "A4"], Grade)
+
+    assert_that(pairs, equal_to([("A1", Grade.C), ("A2", Grade.N), ("A3", Grade.N), ("A4", Grade.N)]))
