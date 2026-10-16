@@ -85,8 +85,3 @@ pytest with PyHamcrest. Besides unit and integration tests, two tests guard the 
 
 MacBook Air M5, 24 GB unified memory. Models up to about 14B parameters run comfortably, around 20B is workable, 24B and
 above is tight.
-
-## Hardware notes
-
-MacBook Air M5, 24 GB unified memory. Models up to about 14B parameters run comfortably, around 20B is workable, 24B and
-above is tight.
