@@ -1,4 +1,4 @@
-from inspect_ai.core import Target, ChatMessageSystem, ChatMessageUser
+from inspect_ai.core import Target
 from inspect_ai.scorer import scorer, mean, stderr, model_graded_fact, Score, Scorer
 from inspect_ai.solver import TaskState
 from inspect_ai.model import Model as InspectModel
@@ -29,19 +29,27 @@ def completeness_scoring() -> ScoringInstructions:
 
 def additions_scoring() -> ScoringInstructions:
     return ScoringInstructions(
-        task="You are evaluating only the content of a submission that goes beyond an expert "
-             "answer to a security question. Ignore the content that matches the expert answer.",
-        criteria="An addition is incorrect if it reflects a misunderstanding of security or of "
-                 "the question; differences in terminology do not make it incorrect. An addition "
-                 "is acceptable only if it is both relevant and correct.",
+        task="You are evaluating the content of a submission that goes beyond an expert answer to a "
+             "security question. The expert answer is a reference and may be incomplete; the purpose is "
+             "to check whether what the submission says beyond it is relevant and correct.",
+        criteria="An addition is any point the submission makes that is not one of the expert answer's "
+                 "points: another measure, attribute or fact, and also an explanation or reason given for "
+                 "a point. Restating an expert point in other words is not an addition.\n"
+                 "An addition is relevant only if it helps answer the question as asked; a statement about "
+                 "something else is not relevant, even if it is true. Judge relevance against the question, "
+                 "not against the expert answer. An addition is incorrect if it reflects a misunderstanding "
+                 "of security or of the question.",
         grades={
-            Grade.C: "all additions are acceptable.",
-            Grade.P: "some additions are acceptable.",
-            Grade.I: "no addition is acceptable.",
+            Grade.C: "every addition you listed is both relevant and correct.",
+            Grade.P: "some, but not all, of the additions you listed are both relevant and correct.",
+            Grade.I: "none of the additions you listed are both relevant and correct.",
             Grade.N: "the submission contains no additions.",
         },
-        procedure="First list each addition. For each, state whether it is relevant to the "
-                  "question and whether it is correct.",
+        procedure="First go through the submission point by point, quoting its words, and mark each point "
+                  "as either one of the expert answer's points or an addition; if every point is one of the "
+                  "expert answer's points, write 'Additions: none'. For each addition, state whether it is "
+                  "relevant to the question and whether it is correct. The grade must follow from this "
+                  "list: N only if you marked no addition.",
     )
 
 
@@ -102,6 +110,7 @@ def _grades_per_model(instructions: ScoringInstructions, graded_line: Scorer) ->
                      answer=line.answer, explanation=line.explanation, metadata=line.metadata)
 
     return score
+
 
 def _grading_problems(labels: list[str], graded: list[str]) -> list[str]:
     """Why a grading is invalid: a label without a grade, or graded more than once. Empty if valid."""

@@ -29,7 +29,7 @@ if __name__ == "__main__":
     order_seed = 112
 
     source_experiment = "security_guide_V2"
-    experiment_name = f"{source_experiment}_rescore_several_answers_V1"
+    experiment_name = f"{source_experiment}_rescore_several_answers_V2"
 
     # the model under test in this eval, judging previous models answers all at once
     graders = [Model.PHI4_14B, Model.APERTUS_V11_4B]

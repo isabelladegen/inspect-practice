@@ -24,6 +24,8 @@ class ScoringInstructions:
             self.task,
             self.criteria,
             self._grades(),
+            "Judge each submission against the expert answer and the question only, never against the "
+            "other submissions.",
             f"For each submission in turn: {self.procedure}",
             "Then review your grades together. Submissions that make the same points must get "
             "the same grade, whatever their wording, length or position. Revise any grade that "

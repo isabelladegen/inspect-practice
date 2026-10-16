@@ -18,11 +18,11 @@ def rescore_experiment(source: str, experiment: str, scorers: list, max_samples:
 
 if __name__ == "__main__":
     grader = Model.PHI4_14B
-    grader_max_tokens = 1024
+    grader_max_tokens = 2048
     temp = 0.0
 
     source_experiment = "security_guide_V2"
-    experiment_name = f"{source_experiment}_rescore_completeness_and_additions_V3"
+    experiment_name = f"{source_experiment}_rescore_completeness_and_additions_V4"
 
     scorers = [
         completeness(instructions=completeness_scoring(), grader=grader, max_tokens=grader_max_tokens, temp=temp),
