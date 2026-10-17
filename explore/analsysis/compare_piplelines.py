@@ -9,7 +9,7 @@ from src.utils.inspect_registery import registered_name
 
 if __name__ == "__main__":
     single = sample_grades("security_guide_V2_rescore_completeness_and_additions_V3")
-    joint = sample_grades("security_guide_V2_rescore_several_answers_V1"    )
+    joint = sample_grades("security_guide_V2_rescore_several_answers_V2"    )
 
     axis = {registered_name(completeness): "completeness",
             registered_name(completeness_of_several_answers): "completeness",
